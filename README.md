@@ -1,0 +1,2 @@
+# check
+assertions for go
