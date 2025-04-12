@@ -2,6 +2,7 @@ package check
 
 import (
 	"fmt"
+	"os"
 	"testing"
 )
 
@@ -35,6 +36,32 @@ func TestCmp(t *testing.T) {
 			} else {
 				Panics(func() {
 					x.cmp(x.a, x.b)
+				})
+			}
+		})
+	}
+}
+
+func TestErr(t *testing.T) {
+	table := []struct {
+		a, b   error
+		passes bool
+	}{
+		{os.ErrClosed, os.ErrClosed, true},
+		{os.ErrClosed, os.ErrDeadlineExceeded, false},
+		{fmt.Errorf("%w", os.ErrClosed), os.ErrClosed, true},
+		{os.ErrExist, nil, false},
+		{nil, os.ErrDeadlineExceeded, false},
+		{nil, nil, true},
+	}
+
+	for _, x := range table {
+		t.Run(fmt.Sprintf("%+v", x), func(t *testing.T) {
+			if x.passes {
+				ErrIs(x.a, x.b)
+			} else {
+				Panics(func() {
+					ErrIs(x.a, x.b)
 				})
 			}
 		})

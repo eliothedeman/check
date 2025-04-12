@@ -2,6 +2,7 @@ package check
 
 import (
 	"cmp"
+	"errors"
 	"fmt"
 )
 
@@ -42,6 +43,31 @@ func GTE[T cmp.Ordered](a, b T) {
 func LTE[T cmp.Ordered](a, b T) {
 	if !(a <= b) {
 		panic(formatCmp(">=", a, b))
+	}
+}
+
+func Nil[T any](x *T) {
+	if x != nil {
+		panic(formatCmp("!=", x, nil))
+	}
+}
+
+func NotNil[T any](x *T) {
+	if x == nil {
+		panic(formatCmp("==", x, nil))
+	}
+}
+
+func Is[T any](a any) {
+	if _, ok := a.(T); !ok {
+		var want T
+		panic(fmt.Sprintf("%v != %T", a, want))
+	}
+}
+
+func ErrIs(e error, target error) {
+	if !errors.Is(e, target) {
+		panic(fmt.Sprintf("%v is not %v", e, target))
 	}
 }
 
