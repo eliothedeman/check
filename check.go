@@ -52,7 +52,7 @@ func Nil(x any) {
 	}
 }
 
-func NotNil[T any](x *T) {
+func NotNil(x any) {
 	if x == nil {
 		panic(formatCmp("==", x, nil))
 	}
