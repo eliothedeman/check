@@ -46,7 +46,7 @@ func LTE[T cmp.Ordered](a, b T) {
 	}
 }
 
-func Nil[T any](x *T) {
+func Nil(x any) {
 	if x != nil {
 		panic(formatCmp("!=", x, nil))
 	}
