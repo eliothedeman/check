@@ -31,6 +31,6 @@ func Catch[T any](f func() T, catchable ...error) (out T, err error) {
 			}
 		}
 	}()
-	f()
+	out = f()
 	return
 }
