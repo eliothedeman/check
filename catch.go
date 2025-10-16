@@ -6,6 +6,9 @@ import (
 	"runtime"
 )
 
+// Catch executes f and converts panics into errors. If catchable errors are specified,
+// only panics matching those errors (via errors.Is) are caught; others are re-panicked.
+// Returns the result of f and any caught error.
 func Catch[T any](f func() T, catchable ...error) (out T, err error) {
 	defer func() {
 		if x := recover(); x != nil {
