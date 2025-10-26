@@ -52,6 +52,16 @@ func LTE[T cmp.Ordered](a, b T) {
 	}
 }
 
+func Between[T cmp.Ordered](a, low, high T) {
+	GT(a, low)
+	LT(a, high)
+}
+
+func BetweenInclusive[T cmp.Ordered](a, low, high T) {
+	GTE(a, low)
+	LTE(a, high)
+}
+
 // Nil panics if x is not nil
 func Nil(x any) {
 	if x != nil {
