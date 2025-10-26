@@ -1,4 +1,4 @@
-# check
+# check [![Go](https://github.com/eliothedeman/check/actions/workflows/go.yml/badge.svg)](https://github.com/eliothedeman/check/actions/workflows/go.yml)
 
 A lightweight, panic-based assertion library for Go with built-in fault injection.
 
