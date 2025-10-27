@@ -31,6 +31,17 @@ type errCfg struct {
 	fails  atomic.Int64
 }
 
+func (e *errCfg) check() bool {
+	NotNil(e)
+	e.checks.Add(1)
+	if e.dice.Int63() <= e.probability {
+		e.passes.Add(1)
+		return true
+	}
+	e.fails.Add(1)
+	return false
+}
+
 func (e *errCfg) err(name string) error {
 	if e.probability <= e.dice.Int63() {
 		return nil
@@ -50,35 +61,37 @@ func ErrPoint(name string) error {
 	if !ok {
 		return nil
 	}
-	cfg.checks.Add(1)
-	if cfg.probability < cfg.dice.Int63() {
-		cfg.fails.Add(1)
+	if !cfg.check() {
 		return nil
 	}
-	cfg.passes.Add(1)
 	return cfg.errFactory(name)
 }
 
 type ErrOpt = func(*errCfg)
 
 // Prob takes a probability between 0.0 and 1.0 and applies it to the given error
-func Prob[T float32 | float64](p float64) ErrOpt {
+func Prob[T float32 | float64](p T) ErrOpt {
 	BetweenInclusive(p, 0, 1)
-	prob := int64(float64(math.MaxInt64) * p)
+	prob := int64(float64(math.MaxInt64) * float64(p))
 	return func(e *errCfg) {
 		e.probability = prob
 	}
 }
 
 func ErrCfg(name string, opts ...ErrOpt) {
-	cfg := new(errCfg)
-	cfg.probability = math.MaxInt64
-	cfg.dice = errDice
-	cfg.errFactory = defaultErrFactory
+	cfg := defaultCfg()
 	for _, o := range opts {
 		o(cfg)
 	}
 	errLock.Lock()
 	defer errLock.Unlock()
 	errCfgMap[name] = cfg
+}
+
+func defaultCfg() *errCfg {
+	cfg := new(errCfg)
+	cfg.probability = math.MaxInt64
+	cfg.dice = errDice
+	cfg.errFactory = defaultErrFactory
+	return cfg
 }
