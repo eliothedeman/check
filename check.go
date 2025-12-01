@@ -91,6 +91,11 @@ func ErrIs(e error, target error) {
 	}
 }
 
+func Must[T any](t T, err error) T {
+	Nil(err)
+	return t
+}
+
 // Panics executes f and panics if f does not panic
 func Panics(f func()) {
 	defer func() {

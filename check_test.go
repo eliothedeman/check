@@ -67,3 +67,33 @@ func TestErr(t *testing.T) {
 		})
 	}
 }
+
+func TestMust(t *testing.T) {
+	// Test successful case: no error
+	result := Must(42, nil)
+	if result != 42 {
+		t.Errorf("Expected 42, got %d", result)
+	}
+
+	// Test successful case: string value
+	strResult := Must("hello", nil)
+	if strResult != "hello" {
+		t.Errorf("Expected 'hello', got '%s'", strResult)
+	}
+
+	// Test panic case: with error
+	Panics(func() {
+		Must(42, os.ErrClosed)
+	})
+
+	// Test panic case: with wrapped error
+	Panics(func() {
+		Must("value", fmt.Errorf("wrapped error"))
+	})
+
+	// Test with custom error
+	customErr := fmt.Errorf("custom error message")
+	Panics(func() {
+		Must(0, customErr)
+	})
+}
