@@ -8,7 +8,7 @@ import (
 type binOp[T cmp.Ordered] struct {
 	name string
 	cmp  int
-	op   func(T, T)
+	op   func(T, T, ...string)
 }
 
 func binOps[T cmp.Ordered]() []binOp[T] {
