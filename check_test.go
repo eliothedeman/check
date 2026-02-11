@@ -20,7 +20,7 @@ func TestPanics(t *testing.T) {
 func TestCmp(t *testing.T) {
 	table := []struct {
 		a, b   int
-		cmp    func(int, int)
+		cmp    func(int, int, ...string)
 		passes bool
 	}{
 		{1, 0, GT[int], true},
