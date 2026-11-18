@@ -39,6 +39,7 @@ func TestProbabilityConfig(t *testing.T) {
 // TestErrPointConcurrent hammers one config from many goroutines. It is only
 // meaningful under `go test -race`.
 func TestErrPointConcurrent(t *testing.T) {
+	WithFaults(t)
 	ErrCfg("race-point", Prob[float64](0.5))
 	var wg sync.WaitGroup
 	for range 16 {
@@ -336,4 +337,9 @@ func TestDelayZeroReturnsNil(t *testing.T) {
 	if err := ErrPoint("zero-delay"); err != nil {
 		t.Errorf("Delay(0) alone should return nil, got %v", err)
 	}
+}
+
+func TestProbNaNPanics(t *testing.T) {
+	Panics(func() { Prob(math.NaN()) })
+	Panics(func() { Prob(float32(math.NaN())) })
 }

@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## v0.4.0 — 2026-11-18
 
 ### Behaviour changes
 
@@ -18,7 +18,7 @@ These change what existing code does. Check them before upgrading.
     original value. Before, a non-error panic was converted to an error even
     when a catchable list was given.
 - **`Prob(0)` never fires.** Before, it could still fire when the source drew 0.
-  `Prob(1)` always fires.
+  `Prob(1)` always fires. `Prob(NaN)` now panics like an out-of-range value.
 - **Default seed.** The global fault seed is now `time.Now().UnixNano()` at
   package init (was `time.Now().Unix()`), and each fault point derives its own
   source from that seed and a hash of its name. Sequences for a given seed

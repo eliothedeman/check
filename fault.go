@@ -138,8 +138,11 @@ func ErrPointCtx(ctx context.Context, name string) error {
 type ErrOpt = func(*errCfg)
 
 // Prob takes a probability between 0.0 and 1.0 and applies it to the given error.
-// Prob(0) never fires and Prob(1) always fires.
+// Prob(0) never fires and Prob(1) always fires. It panics if p is NaN or outside [0, 1].
 func Prob[T float32 | float64](p T) ErrOpt {
+	if p != p {
+		panic("Prob: probability is NaN")
+	}
 	BetweenInclusive(p, 0, 1)
 	var prob uint64
 	if p >= 1 {
@@ -219,6 +222,9 @@ type Cleanuper interface {
 // WithFaults isolates a test's faults. It saves the current fault points,
 // removes them all, and registers a t.Cleanup that restores the saved ones, so
 // faults configured by the test do not leak into later tests.
+//
+// The fault set is one global, so WithFaults must not be used from tests that
+// call t.Parallel: parallel tests would see and clobber each other's faults.
 func WithFaults(t Cleanuper) {
 	errLock.Lock()
 	saved := errCfgMap
@@ -240,7 +246,9 @@ type FaultStats struct {
 }
 
 // ErrStats returns the stats for the fault point name, or the zero value if it
-// is not configured.
+// is not configured. The two fields are read separately, not as one atomic
+// snapshot, so under concurrent use they may be slightly out of step; Fired is
+// never greater than Checks.
 func ErrStats(name string) FaultStats {
 	errLock.RLock()
 	cfg, ok := errCfgMap[name]
@@ -248,7 +256,10 @@ func ErrStats(name string) FaultStats {
 	if !ok {
 		return FaultStats{}
 	}
-	return FaultStats{Checks: cfg.checks.Load(), Fired: cfg.passes.Load()}
+	// Load passes first: passes is incremented after checks, so a later checks
+	// load can only be >= the passes seen.
+	fired := cfg.passes.Load()
+	return FaultStats{Checks: cfg.checks.Load(), Fired: fired}
 }
 
 // ErrResetStats zeroes the stats for the fault point name, leaving its config
