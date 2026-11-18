@@ -30,6 +30,8 @@
   `t.FailNow` with the file:line of the failing assertion's caller. `Run`
   reports a panic with `t.Errorf` only, so it is safe from any goroutine.
 - Doc comments on `Between`, `BetweenInclusive` and `Must`.
+- README rewritten to cover the whole API, backed by tested `Example` functions
+  (`example_*_test.go`).
 
 ## v0.5.0 — 2026-11-18
 

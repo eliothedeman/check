@@ -27,6 +27,10 @@ type TB interface {
 // caller of the failing assertion, then t.FailNow. It reports panics that did
 // not come from this package too. Recover does nothing if there is no panic.
 //
+// The message ends with a line "at file:line". Read that line for the location
+// of the failure. The file:line that the testing package prints before the
+// message points into this library, because that is where t.Errorf is called.
+//
 // Recover must be deferred directly (defer check.Recover(t)) and must run on
 // the test goroutine, because t.FailNow must. In any other goroutine use Run.
 func Recover(t TB) {
@@ -42,9 +46,13 @@ func Recover(t TB) {
 
 // Run calls f and reports whether it finished without a panic. If f panics, Run
 // calls t.Errorf with the panic value and the file:line of the caller of the
-// failing assertion, and returns false. It never calls t.FailNow, so it is
-// safe to call from any goroutine, and a failed assertion in a goroutine fails
-// one test instead of killing the test binary.
+// failing assertion, and returns false. As with Recover, read the "at
+// file:line" line at the end of the message for the location of the failure.
+// The file:line that testing prefixes points into this library.
+//
+// Run never calls t.FailNow, so it is safe to call from any goroutine, and a
+// failed assertion in a goroutine fails one test instead of killing the test
+// binary.
 func Run(t TB, f func()) (ok bool) {
 	defer func() {
 		r := recover()
@@ -64,7 +72,10 @@ const checkPkgPrefix = "github.com/eliothedeman/check."
 
 // callerOutsideCheck returns the first stack frame that is neither in the
 // runtime nor in this package. When called from a deferred function while a
-// panic is unwinding, that frame is the caller of the failing assertion.
+// panic is unwinding, that frame is the caller of the failing assertion. It is
+// the first frame outside package check, not the test function: if a user
+// helper calls the assertion, the helper's line is reported, not the line in
+// the test that called the helper.
 func callerOutsideCheck() (frame runtime.Frame, found bool) {
 	pcs := make([]uintptr, 64)
 	n := runtime.Callers(2, pcs)
