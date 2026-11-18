@@ -1,5 +1,36 @@
 # Changelog
 
+## v0.6.0 — 2026-11-18
+
+### Behaviour changes
+
+- **`Nil` and `NotNil` understand typed nils.** A nil pointer, map, slice,
+  channel, func or interface held in an `any` now counts as nil. Before,
+  `NotNil((*T)(nil))` passed and `Nil((*T)(nil))` panicked, because the boxed
+  value is not `== nil`. `Must` and the new `NoErr` follow the same rule, so an
+  error interface holding a nil pointer no longer panics.
+- **Failure messages changed wording.**
+  - `LTE` printed `a >= b`. It now prints `a <= b`.
+  - `Nil` printed `x != <nil>`. It now prints `expected nil, got x`.
+  - `NotNil` printed `<nil> == <nil>`. It now prints `expected non-nil`.
+  Code that matches on these strings needs updating.
+
+### Added
+
+- `NoErr(err)` and `ErrContains(err, substr)`.
+- `InDelta(a, b, delta)` for tolerance comparison of any integer or float type,
+  including `time.Duration`, with the `Number` constraint. NaN is never within
+  a delta.
+- `Contains(s, substr)` and `NotContains(s, substr)` for strings, such as
+  streamed frames.
+- `Eventually(timeout, interval, cond)` and `Never(d, interval, cond)` for async
+  tests. They poll on the calling goroutine and start no goroutines.
+- `TB` (the part of `testing.TB` that is needed), `Recover(t)` and `Run(t, f)`.
+  `defer check.Recover(t)` turns an assertion panic into `t.Errorf` and
+  `t.FailNow` with the file:line of the failing assertion's caller. `Run`
+  reports a panic with `t.Errorf` only, so it is safe from any goroutine.
+- Doc comments on `Between`, `BetweenInclusive` and `Must`.
+
 ## v0.5.0 — 2026-11-18
 
 ### Added
