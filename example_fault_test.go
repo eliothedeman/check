@@ -82,7 +82,8 @@ func ExampleSeed() {
 		}
 		return seq
 	}
-	fmt.Println(run() == run(), check.FaultSeed())
+	first, second := run(), run()
+	fmt.Println(first == second, check.FaultSeed())
 
 	// Output:
 	// true 42
