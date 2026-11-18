@@ -71,6 +71,14 @@ func (f HTTPFault) String() string {
 // Handler: the connection is hijacked and closed without writing a byte, so the
 // client sees an EOF. next is not called. If the connection cannot be hijacked
 // (HTTP/2), the handler panics with http.ErrAbortHandler, which aborts the stream.
+//
+// Retries: a client's net/http.Transport silently retries an idempotent request
+// (such as GET) when it reused a keep-alive connection and that connection fails
+// before any response byte arrives, as it does for a Handler fault. With Prob < 1
+// the retry can skip the fault,
+// and the point then counts 2 checks for one client call. To test the fault
+// deterministically, send a non-idempotent request such as POST, or set
+// DisableKeepAlives on the client's transport.
 func FailBeforeHeaders() HTTPFault {
 	return HTTPFault{kind: httpFailBeforeHeaders}
 }
@@ -99,6 +107,11 @@ func StallHeaders(d time.Duration) HTTPFault {
 // Handler: after afterBytes body bytes are written and flushed, the connection is
 // closed without finishing the response, so the client's body read returns
 // io.ErrUnexpectedEOF. Later writes by next fail with http.ErrHijacked.
+//
+// Transport: to tell a body that ends exactly at the cut from a longer one, the
+// body reads one byte past the cut. On an idle stream the error therefore
+// surfaces only when the next upstream bytes arrive (or the upstream ends), not
+// at the cut itself.
 func TruncateBody(afterBytes int64) HTTPFault {
 	GTE(afterBytes, 0)
 	return HTTPFault{kind: httpTruncateBody, n: afterBytes}
@@ -113,6 +126,14 @@ func TruncateBody(afterBytes int64) HTTPFault {
 // TCP RST. The client sees "connection reset by peer" (syscall.ECONNRESET). If the
 // connection is not a TCP connection, or cannot be hijacked, this degrades to
 // FailBeforeHeaders.
+//
+// Retries: a client's net/http.Transport silently retries an idempotent request
+// (such as GET) when it reused a keep-alive connection and that connection fails
+// before any response byte arrives, as it does for a Handler fault. With Prob < 1
+// the retry can skip the fault,
+// and the point then counts 2 checks for one client call. To test the fault
+// deterministically, send a non-idempotent request such as POST, or set
+// DisableKeepAlives on the client's transport.
 func ResetConn() HTTPFault {
 	return HTTPFault{kind: httpResetConn}
 }
@@ -541,6 +562,9 @@ func (w *faultWriter) Write(p []byte) (int, error) {
 		_ = http.NewResponseController(w.ResponseWriter).Flush()
 		w.dead = true
 		abortConn(w.ResponseWriter, false)
+		// Partial write: only the first keep bytes of p went out, so return
+		// that count with a non-nil error, as io.Writer requires when n < len(p).
+		// written never exceeds f.n, so keep is at least 0.
 		return int(keep), http.ErrHijacked
 	}
 	return w.ResponseWriter.Write(p)
