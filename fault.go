@@ -68,6 +68,9 @@ type errCfg struct {
 	delaySet bool
 	// seeded reports whether WithSeed was given.
 	seeded bool
+	// httpFault is the HTTP-level fault attached with HTTP. The zero value
+	// means none. See http.go.
+	httpFault HTTPFault
 
 	// mu guards dice, which is not safe for concurrent use.
 	mu     sync.Mutex
@@ -110,28 +113,48 @@ func ErrPoint(name string) error {
 // ErrPointCtx is ErrPoint with a context. If the fault fires and has a Delay,
 // the sleep ends early when ctx is done, and ErrPointCtx returns ctx.Err().
 func ErrPointCtx(ctx context.Context, name string) error {
-	errLock.RLock()
-	cfg, ok := errCfgMap[name]
-	errLock.RUnlock()
+	cfg, ok := lookup(name)
 	if !ok {
 		return nil
 	}
-	if !cfg.check() {
-		return nil
+	fired, err := cfg.fire(ctx)
+	if err != nil {
+		return err
 	}
-	if cfg.delay > 0 {
-		t := time.NewTimer(cfg.delay)
-		select {
-		case <-t.C:
-		case <-ctx.Done():
-			t.Stop()
-			return ctx.Err()
-		}
+	if !fired {
+		return nil
 	}
 	if cfg.delaySet && !cfg.errSet {
 		return nil
 	}
 	return cfg.errFactory(name)
+}
+
+// lookup returns the config for the fault point name.
+func lookup(name string) (*errCfg, bool) {
+	errLock.RLock()
+	defer errLock.RUnlock()
+	cfg, ok := errCfgMap[name]
+	return cfg, ok
+}
+
+// fire draws once and, when the fault fires, sleeps the configured delay. It
+// reports whether the fault fired. If ctx ends during the delay it returns
+// (true, ctx.Err()).
+func (e *errCfg) fire(ctx context.Context) (bool, error) {
+	if !e.check() {
+		return false, nil
+	}
+	if e.delay > 0 {
+		t := time.NewTimer(e.delay)
+		select {
+		case <-t.C:
+		case <-ctx.Done():
+			t.Stop()
+			return true, ctx.Err()
+		}
+	}
+	return true, nil
 }
 
 // ErrOpt configures a fault point. See ErrCfg.

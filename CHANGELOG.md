@@ -1,5 +1,22 @@
 # Changelog
 
+## Unreleased
+
+### Added
+
+- HTTP fault injection, driven by the same fault points as `ErrPoint`
+  (`Prob`, `Seed`/`WithSeed`, `Delay`, `ErrStats` and `WithFaults` all apply):
+  - `FaultTransport(name, base)` wraps an `http.RoundTripper`.
+  - `FaultHandler(name, next)` wraps an `http.Handler`; it works against a real
+    `net/http` server, including streaming with `Flush`.
+  - `HTTP(fault)` attaches an `HTTPFault` to a point configured with `ErrCfg`.
+  - Faults: `FailBeforeHeaders()`, `StatusFault(code)`, `StallHeaders(d)`
+    (ends with the request context), `TruncateBody(n)` (`io.ErrUnexpectedEOF`),
+    `ResetConn()` (`syscall.ECONNRESET` / TCP RST) and `MalformedSSE(n)`
+    (injects `MalformedSSEFrame` into a `text/event-stream` body).
+  - A point without an HTTP fault behaves as `FailBeforeHeaders` when reached
+    through `FaultTransport` or `FaultHandler`. `ErrPoint` ignores HTTP faults.
+
 ## v0.4.0 — 2026-11-18
 
 ### Behaviour changes
